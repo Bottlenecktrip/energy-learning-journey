@@ -1,0 +1,300 @@
+===========================================================================
+ HUB - WIRING
+ Board: the plain ESP32 (the one WITHOUT a screen)
+===========================================================================
+ PARTS USED - only these:
+      1. THREE zone LEDs (Generation / Transmission / Distribution)
+      2. KY-004 button
+      3. KY-023 joystick
+      4. Passive buzzer
+
+ NOT USED: gesture sensor, servo, PCA9685, buck converter, 3W LEDs.
+ Leave them unplugged.
+===========================================================================
+
+
+ 1. THE THREE ZONE LEDS
+---------------------------------------------------------------------------
+ There is ONE LED per zone now, instead of one LED that changes colour.
+ Each LED always shows its own zone's colour and just switches ON or OFF.
+ They use the SAME 3 pins the old single mixed-colour LED used.
+
+ THE THREE PARTS BEING USED - one per zone, each a perfect fit:
+   KY-011  ->  Transmission   (2-colour red+green module = amber, built in)
+   KY-009  ->  Generation     (RGB module, only its green leg is used)
+   KY-016  ->  Distribution   (RGB module, red+blue legs used = purple)
+
+ WHY THIS SPLIT
+ ---------------------------------------------------------------------
+ KY-011 is a 2-colour (red+green only, no blue) module. It CAN make
+ red, green, and amber (red+green together) - perfect for Transmission,
+ nothing extra needed. It CANNOT make purple - there is no blue inside it.
+
+ KY-009 and KY-016 are both RGB modules (red+green+blue). Since
+ Distribution's purple NEEDS a blue element, one of the two RGB modules
+ must go there. The other RGB module covers Generation - only its green
+ pin gets used, and its red and blue pins are simply left disconnected.
+
+ GENERATION LED - KY-009 (only the G pin is used)
+   KY-009 PIN               ->   ESP32 PIN
+   ----------------------------------------
+   G                        ->   GPIO18
+   R                        ->   leave disconnected (not used)
+   B                        ->   leave disconnected (not used)
+   -   (common/ground)      ->   GND
+
+ TRANSMISSION LED - KY-011 (R and G each get their OWN pin, for easier
+   wiring - the code switches both pins together, so they still light at
+   the same time = amber)
+   KY-011 PIN               ->   ESP32 PIN
+   ----------------------------------------
+   R                        ->   GPIO19
+   G                        ->   GPIO23
+   -   (common/ground)      ->   GND
+
+ DISTRIBUTION LED - KY-016 (R and B each get their OWN pin, for easier
+   wiring - the code switches both pins together, so they still light at
+   the same time = purple)
+   KY-016 PIN               ->   ESP32 PIN
+   ----------------------------------------
+   R                        ->   GPIO5
+   B                        ->   GPIO25
+   G                        ->   leave disconnected (not used)
+   -   (common/ground)      ->   GND
+
+   All three of these are small breakout modules from the 37-sensor kit,
+   and normally already have their current-limiting resistors built onto
+   the tiny board - check for small black surface-mount parts near the
+   LED before assuming you need to add your own resistors. If the board
+   is genuinely bare, add ~220-330 ohm on red/green legs and ~100-150 ohm
+   on any blue leg (blue needs less resistance to reach the same
+   brightness) - if a colour looks too reddish, its resistor is too big.
+
+   If the LEDs come on when they should be off (and off when they should
+   be on), wire the LED's own common leg to 3V3 instead of GND for the
+   normal fix - do this per LED, no code change needed. The one line near
+   the top of HUB.ino, #define LED_ACTIVE_LOW, is a single switch that
+   affects ALL THREE LEDs at once - only use it if every one of your three
+   LEDs is wired the same "backwards" way. If your three parts are a mix
+   of types (unlikely, but possible), tell Claude and the code can be
+   changed to control each LED's polarity separately.
+
+
+ 2. KY-004 BUTTON              [tested - working]
+---------------------------------------------------------------------------
+   BUTTON PIN              ->   ESP32 PIN
+   ----------------------------------------
+   S   (signal)            ->   GPIO4
+   -   (minus)             ->   GND        (any GND pin)
+   +   (plus)              ->   leave empty
+
+   No resistor needed - the ESP32 switches on an internal pull-up in code.
+
+
+ 3. KY-023 JOYSTICK            [tested - working]
+---------------------------------------------------------------------------
+   JOYSTICK PIN            ->   ESP32 PIN
+   ----------------------------------------
+   GND                     ->   GND        (any GND pin)
+   +5V                     ->   3V3        <-- 3V3, NOT 5V
+   VRx                     ->   GPIO34
+   VRy                     ->   GPIO35
+   SW                      ->   GPIO32
+
+   *** The pin is LABELLED "+5V" but it MUST go to 3V3. ***
+   The joystick passes whatever voltage you feed it straight into the
+   ESP32's analog pins, and those pins are not 5V safe. Feeding it 5V
+   can permanently damage the chip.
+
+   Do NOT hold the joystick while the board is switching on. It measures
+   its own resting position during the first second after power-up.
+
+   Why these pins: VRx and VRy must be on GPIO32-39 (called ADC1). The
+   other analog pins stop working the moment WiFi switches on, and this
+   board always has WiFi running. GPIO34 and GPIO35 are input-only and
+   cannot do a pull-up, so the click (SW) goes on GPIO32 instead.
+
+
+ 4. PASSIVE BUZZER
+---------------------------------------------------------------------------
+   There are two versions of this part. Check yours.
+
+   2-PIN version (a black cylinder with 2 legs):
+   BUZZER PIN              ->   ESP32 PIN
+   ----------------------------------------
+   + (longer leg)          ->   GPIO26
+   - (shorter leg)         ->   GND
+
+   3-PIN module (small circuit board marked S / VCC / GND):
+   BUZZER PIN              ->   ESP32 PIN
+   ----------------------------------------
+   S   (signal)            ->   GPIO26
+   VCC                     ->   3V3        (move to 5V if too quiet)
+   GND                     ->   GND
+
+   It must be a PASSIVE buzzer. An active buzzer only makes one fixed
+   tone and will sound wrong. If you do not have one, set this line near
+   the top of HUB.ino:
+        #define ENABLE_BUZZER  0
+   and everything else still works.
+
+
+===========================================================================
+ COMPLETE PIN LIST - everything on the board when you are finished
+===========================================================================
+   ESP32 PIN   ->   WHAT IS CONNECTED
+   ---------------------------------------------
+   GPIO4       ->   button signal
+   GPIO5       ->   Distribution LED  (KY-016, R leg)
+   GPIO18      ->   Generation LED    (KY-009, G leg only)
+   GPIO19      ->   Transmission LED  (KY-011, R leg)
+   GPIO23      ->   Transmission LED  (KY-011, G leg)
+   GPIO25      ->   Distribution LED  (KY-016, B leg)
+   GPIO26      ->   buzzer signal
+   GPIO32      ->   joystick click (SW)
+   GPIO34      ->   joystick X  (left / right)
+   GPIO35      ->   joystick Y  (up / down)
+   3V3         ->   joystick power  (+ buzzer VCC if it is a 3-pin module)
+   GND         ->   every LED's cathode/common leg, button minus,
+                    joystick GND, buzzer minus
+
+ All the GND wires can share. If you have a breadboard, run one wire from
+ an ESP32 GND pin to the blue "-" rail, then take every part's ground
+ from that rail.
+
+ Do NOT use pins 6 to 11. They are wired to the ESP32's own memory chip
+ and the board will not start.
+
+
+===========================================================================
+ HOW TO USE IT
+===========================================================================
+ There are TWO LEVELS. You start OUTSIDE, looking at the four zones.
+ Holding the button takes you INSIDE a zone, where its exhibits are.
+
+ The KY-004 button and the joystick click do exactly the same thing.
+ Use whichever is easier to reach.
+
+
+ LEVEL 1 - OUTSIDE (choosing a zone)
+---------------------------------------------------------------------------
+   Joystick LEFT / RIGHT    move the highlight across the four buttons
+                            (Generation, Transmission, Distribution,
+                            Overview). Nothing is chosen yet - the LED
+                            just blips in that colour and the buzzer ticks.
+
+   Quick press              choose the highlighted zone. The LED blinks
+                            3 times then holds that colour, and the web
+                            page flies to that zone.
+
+   HOLD for 2 seconds       GO INSIDE that zone. You land on its FIRST
+                            exhibit straight away. You will hear three
+                            RISING beeps and see that zone's LED blink
+                            twice.
+
+   (You do not have to press first. Holding on a zone both chooses it
+    and goes inside, in one go.)
+
+
+ LEVEL 2 - INSIDE a zone (choosing an exhibit)
+---------------------------------------------------------------------------
+   Joystick UP / DOWN       move between the exhibits in this zone.
+                            The web page highlights each one as you go.
+
+   Quick press              open the highlighted exhibit. The web page
+                            zooms into it and the zone's LED does a
+                            quick double-blink (then stays on).
+
+   HOLD for 2 seconds       COME BACK OUT to the zone list. You will hear
+                            three FALLING beeps.
+
+   Joystick LEFT / RIGHT    does nothing on purpose. It stops anyone
+                            knocking the display onto another zone while
+                            you are talking about an exhibit. Hold for
+                            2 seconds to come out first.
+
+
+ HOW TO TELL WHICH LEVEL YOU ARE ON
+---------------------------------------------------------------------------
+   Three RISING beeps   you just went INSIDE a zone
+   Three FALLING beeps  you just came back OUT
+   Up/down does nothing you are still OUTSIDE - hold 2 seconds first
+
+ The exhibit returns to Overview by itself after 45 seconds, and that
+ also puts you back OUTSIDE on the zone list.
+
+
+ WHAT THE LEDS ARE TELLING YOU
+---------------------------------------------------------------------------
+   Only ONE of the three LEDs is ever lit at a time (Overview = all off).
+   Which one is on tells you the zone; the BLINK PATTERN tells you what
+   just happened:
+
+   one short blip on a LED     you are moving the highlight (just browsing)
+   ALL THREE blink together    you are previewing "Overview" (not chosen yet)
+   3 blinks then stays on      that zone was chosen
+                                   Generation LED   = green
+                                   Transmission LED = amber
+                                   Distribution LED = purple
+   2 quick blinks then stays on  you opened an exhibit inside that zone
+   all off                     Overview - nothing selected
+
+
+===========================================================================
+ TESTING, IN ORDER
+===========================================================================
+ Open these in a web browser, or paste them into PowerShell.
+ The board must be powered and on the same WiFi as you.
+
+ 1. Is the hub alive?
+      http://192.168.1.99/state
+
+ 2. Test the buzzer
+      http://192.168.1.99/beep
+
+ 3. Test the joystick - move it while refreshing the page
+      http://192.168.1.99/joy
+      Resting is about x=2950 y=2800 on this stick (that is normal -
+      it rests off centre and the code handles it).
+      Push it fully and the numbers should swing towards 0 or 4095.
+      Click it and "press" turns true.
+
+ 4. Test the LED colours
+      http://192.168.1.99/trigger?zone=gen     green
+      http://192.168.1.99/trigger?zone=xmit    amber
+      http://192.168.1.99/trigger?zone=dist    purple
+      http://192.168.1.99/trigger?zone=all     off
+
+
+===========================================================================
+ IF SOMETHING DOES NOT WORK
+===========================================================================
+   Nothing responds at all
+        Check the board actually has power first. This exact problem
+        cost us an afternoon once, and the answer was simply that the
+        board was switched off.
+        Also: the first request after the board has been idle can take
+        3 or 4 seconds. Try it twice before worrying.
+
+   Joystick numbers stuck at 4095
+        The GND wire is not connected.
+
+   Joystick numbers sit near 2900 and barely move
+        VRx and VRy are not actually reaching GPIO34 and GPIO35.
+
+   The highlight moves on its own
+        The joystick was being held while the board switched on.
+        Restart it and keep your hands off for the first second.
+
+   Button does nothing
+        Check the signal wire is on the pin marked S, not + or -.
+        A loose jumper caused this twice on this project - push it in
+        firmly before assuming the part is broken.
+
+   Buzzer silent or sounds like a click
+        It is probably an ACTIVE buzzer, not a passive one.
+        Passive buzzers are the ones that need the board to make the tone.
+
+   LED shows the wrong colours
+        Swap which leg goes to GPIO18, 19 and 5 until they match.
+        The middle two legs are the easiest to mix up.
