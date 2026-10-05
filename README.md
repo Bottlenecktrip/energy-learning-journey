@@ -33,17 +33,3 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 ```
 
 The remote needs its display driver settings passed in at compile time instead of through the Arduino IDE. There's a comment block at the top of `firmware/remote/remote.ino` explaining how.
-
-## Things that didn't go to plan
-
-Not everything worked first try, and I'd rather leave that in than pretend it did.
-
-The gesture sensor (a PAJ7620) never worked, no matter what I tried. Swapped the data lines, tried it on both 3.3V and 5V, added pull-up resistors in software, even scanned 72 different pin combinations looking for it. The ESP32 just never sees it on the I2C bus. It's disabled in this build, and the joystick's unused up/down axis quietly does the same job instead.
-
-A step-up voltage board also managed to short a different board it was supposed to be powering. That one got isolated and swapped out. And the touchscreen remote's display died partway through the build for no obvious reason. I re-flashed it and re-seated the connections rather than root-causing it properly, which is about as much debugging as a hard deadline actually allows.
-
-## Credits
-
-Built for SP's School of Electrical & Electronic Engineering, supervised by Dr Fred Wei and Dr Cai Zhi Qiang. Sponsored by SP Group, CHINT and Siemens.
-
-Skyler Gan
