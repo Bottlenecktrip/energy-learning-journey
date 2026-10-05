@@ -4,7 +4,7 @@ Interactive power grid exhibit I built during my internship with SP's School of 
 
 The idea: you pick a zone, Generation, Transmission, or Distribution, using a joystick, a button, or your own phone, and the exhibit reacts two ways at once. A 3D model of the grid flies over to that zone in the browser, and on the physical diorama next to it, the matching LED lights up at the same moment. A buzzer beeps to confirm it too, so picking a zone always feels certain.
 
-**Try it:** open `index.html` directly, or through GitHub Pages once it's turned on for this repo.
+**Try it:** https://bottlenecktrip.github.io/energy-learning-journey/
 
 ## How it works
 
