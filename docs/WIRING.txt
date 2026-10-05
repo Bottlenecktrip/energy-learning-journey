@@ -76,8 +76,8 @@
    the top of HUB.ino, #define LED_ACTIVE_LOW, is a single switch that
    affects ALL THREE LEDs at once - only use it if every one of your three
    LEDs is wired the same "backwards" way. If your three parts are a mix
-   of types (unlikely, but possible), tell Claude and the code can be
-   changed to control each LED's polarity separately.
+   of types (unlikely, but possible), the code needs a small change to
+   control each LED's polarity separately.
 
 
  2. KY-004 BUTTON              [tested - working]
